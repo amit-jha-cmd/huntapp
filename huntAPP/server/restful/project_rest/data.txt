@@ -1,0 +1,149 @@
+insert into student values ('1PE17IS011', 'Amit Jha', 'ISE', 'EC-2', 'M', 'Rakesh', 9430044659, null);
+insert into courses values ('1PE17IS011', '58PES13', 1);
+insert into courses values ('1PE17IS011', '57PES12', 1);
+insert into courses values ('1PE17IS011', '57PES14', 1);
+insert into courses values ('1PE17IS011', '57PES17', 1);
+insert into courses values ('1PE17IS011', '57PES19', 0);
+insert into iamarks values ('1PE17IS011', '58PES13', 28, 29, 12);
+insert into iamarks values ('1PE17IS011', '57PES12', 24, 23, 11);
+insert into iamarks values ('1PE17IS011', '57PES14', 21, 21, 11);
+insert into iamarks values ('1PE17IS011', '57PES17', 29, 22, 18);
+insert into iamarks values ('1PE17IS011', '57PES19', 27, 24, 17);
+insert into subjects values ('58PES13', 'Automata Theory');
+insert into subjects values ('57PES12', 'Computer Network');
+insert into subjects values ('57PES14', 'Database Management');
+insert into subjects values ('57PES17', 'Artificial Intelligence');
+insert into subjects values ('57PES19', 'ME');
+insert into attendence values ('1PE17IS011', 1, 0.98);
+insert into attendence values ('1PE17IS011', 2, 1);
+insert into attendence values ('1PE17IS011', 3, 0.93);
+insert into attendence values ('1PE17IS011', 4, 0.82);
+insert into attendence values ('1PE17IS011', 5, 0.89);
+
+delimiter |
+CREATE OR REPLACE PROCEDURE AVGMARKS
+IS
+CURSOR C_IAMARKS IS
+SELECT GREATEST(ia1,ia2) AS A, GREATEST(ia1,ia3) AS B,
+GREATEST(ia3,ia2) AS C
+FROM iamarks
+WHERE finalia IS NULL
+FOR UPDATE;
+ C_A NUMBER;
+ C_B NUMBER;
+ C_C NUMBER;
+ C_SM NUMBER;
+ C_AV NUMBER;
+BEGIN
+ OPEN C_IAMARKS;
+ LOOP
+ FETCH C_IAMARKS INTO C_A, C_B, C_C;
+ EXIT WHEN C_IAMARKS%NOTFOUND;
+ --DBMS_OUTPUT.PUT_LINE(C_A || ' ' || C_B || ' ' || C_C);
+ IF (C_A != C_B) THEN
+C_SM:=C_A+C_B;
+ ELSE
+C_SM:=C_A+C_C;
+ END IF;
+ C_AV:=C_SM/2;
+ --DBMS_OUTPUT.PUT_LINE('SUM = '||C_SM);
+ --DBMS_OUTPUT.PUT_LINE('AVERAGE = '||C_AV);
+ UPDATE iamarks SET finalia=C_AV WHERE CURRENT OF C_IAMARKS;
+ END LOOP;
+ CLOSE C_IAMARKS;
+END |
+
+
+delimiter |
+CREATE OR REPLACE TRIGGER RENTALHIS_DEL
+INSTEAD OF DELETE ON student
+BEGIN
+   RAISE_APPLICATION_ERROR (-20000, 'Deletion not supported on this table');
+END;//
+delimiter;
+
+
+
+CREATE PROCEDURE insertUser
+@srn varchar(10),
+@firstName varchar
+AS
+BEGIN
+
+IF (SELECT COUNT(*) FROM tblData WHERE Name = @Name AND Date=@Date) = 0
+    BEGIN
+        INSERT INTO tblData
+                    ( Name, Date)
+             VALUES (@Name, @Date)
+        Print 'Data now added.'
+     END
+ELSE
+    BEGIN
+        Print 'Dah! already exists';
+    END
+END
+
+
+
+DELIMITER $$
+-- before inserting new id
+DROP TRIGGER IF EXISTS before_insert_id$$
+CREATE TRIGGER before_insert_id
+    BEFORE INSERT ON students FOR EACH ROW
+    BEGIN
+        -- condition to check
+        IF NEW.srn = srn THEN
+            -- hack to solve absence of SIGNAL/prepared statements in triggers
+            UPDATE `Error: invalid_id_test` SET x=1;
+        END IF;
+    END$$
+
+DELIMITER ;
+
+
+
+WORKING
+
+delimeter /
+create trigger iamakrsTrigger after insert on courses
+for each row
+begin
+insert into iamarks(ssrn, subcode, ia1, ia2, ia3, finalmarks) values (new.ssrn, new.subcode, 0, 0, 0, 0);
+end /
+delimiter ;
+
+
+create procedure CursorProc
+as
+begin
+   declare @count int;
+   declare @ia1 int
+   declare @ia2 int
+   declare @ia3 int
+   set @count = select count(*) from iamarks where ssrn='   1PE17IS011'
+   declare FirstCursor cursor for select * from iamarks where ssrn='1PE17IS011'
+   open FirstCursor 
+   while @count > 0
+      begin
+         fetch FirstCursor into @ia1, @ia2, @ia3
+         Exec TestProc @name, @age
+         set @count = @count - 1
+      end
+   close FirstCursor 
+   deallocate FirstCursor 
+end
+
+WORKS
+
+delimeter /
+create procedure update_marks 
+(IN new_id varchar(10), IN new_subcode varchar(10) , IN new_ia1 int(2), IN new_ia2 int(2), IN new_ia3 int(2)) 
+begin 
+update iamarks set ia1 = new_ia1 where ssrn = new_id and subcode = new_subcode;
+update iamarks set ia2 = new_ia2 where ssrn = new_id and subcode = new_subcode;
+update iamarks set ia3 = new_ia3 where ssrn = new_id and subcode = new_subcode;
+update iamarks set finalmarks = (new_ia1 + new_ia2 + new_ia3) / 3 where ssrn = new_id and subcode = new_subcode;
+
+end /
+
+delimeter ;
